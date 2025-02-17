@@ -5,7 +5,7 @@ import cv2
 from flask import Flask, request, make_response, jsonify, abort
 import numpy as np
 
-from auth import requires_auth
+from .auth import requires_auth
 
 
 def create_app():
