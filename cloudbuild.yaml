@@ -1,0 +1,31 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '--no-cache', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image', '.']
+  # Tag the Docker image with the commit SHA
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['tag', 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:latest', 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:$COMMIT_SHA']
+  # Push the latest tag to the Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:latest']
+  # Push the commit-specific tag to the Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:$COMMIT_SHA']
+  # deployment to cloud run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+    - 'run'
+    - 'deploy'
+    - 'mock-api'
+    - '--image'
+    - 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:latest'
+    - '--region'
+    - 'us-central1'
+    - '--platform'
+    - 'managed'
+    - '--allow-unauthenticated'
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image'
+options:
+  logging: CLOUD_LOGGING_ONLY
