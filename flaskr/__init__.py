@@ -13,7 +13,6 @@ def create_app():
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
 
-    @requires_auth
     @app.route("/", methods=["GET"])
     def index():
         return "Hello, World!"
