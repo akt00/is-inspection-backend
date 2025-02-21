@@ -50,7 +50,12 @@ def create_app():
 
         try:
             image_stream = io.BytesIO(file_content)
-            image_array = np.frombuffer(image_stream.read(), np.uint16)
+
+            try:
+                image_array = np.frombuffer(image_stream.read(), np.uint8)
+            except Exception:
+                image_array = np.frombuffer(image_stream.read(), np.uint16)
+
             img = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
 
             width, height, _ = img.shape
