@@ -5,7 +5,10 @@ import cv2
 from flask import Flask, request, make_response, jsonify, abort
 import numpy as np
 
-from auth import requires_auth
+if __name__ == "__main__":
+    from auth import requires_auth
+else:
+    from .auth import requires_auth
 
 
 def create_app():
