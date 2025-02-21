@@ -5,7 +5,7 @@ import cv2
 from flask import Flask, request, make_response, jsonify, abort
 import numpy as np
 
-from .auth import requires_auth
+from auth import requires_auth
 
 
 def create_app():
@@ -28,16 +28,16 @@ def create_app():
         if file.filename == "":
             abort(400, description="No selected file.")
 
-        if not file.filename.lower().endswith((".tiff", ".tif")):
+        if not file.filename.lower().endswith((".tiff", ".tif", "png")):
             abort(
                 400,
-                description=f"Uploaded file is not a TIFF image (filename extension). {file.filename}",
+                description=f"Uploaded file is not an image (filename extension). {file.filename}",
             )
 
-        if file.content_type != "image/tiff":
+        if file.content_type != "image/tiff" and file.content_type != "image/png":
             abort(
                 400,
-                description=f"Uploaded file is not a TIFF image (Content-Type mismatch). {file.content_type}",
+                description=f"Uploaded file is not an image (Content-Type mismatch). {file.content_type}",
             )
 
         file_content = file.read()
@@ -66,8 +66,8 @@ def create_app():
     @app.route("/api/v1/upload", methods=["POST"])
     def upload():
         if (
-            "image_png" not in request.files
-            or "image_tiff" not in request.files
+            "image8" not in request.files
+            or "image16" not in request.files
             or "metadata" not in request.files
         ):
             abort(
@@ -75,48 +75,48 @@ def create_app():
                 description=f"Files missing. Those must be present. {request.files}",
             )
 
-        png_file = request.files["image_png"]
+        file8 = request.files["image8"]
 
-        if png_file.filename == "":
+        if file8.filename == "":
             abort(400, description="No selected file.")
 
-        if not png_file.filename.lower().endswith((".png")):
+        if not file8.filename.lower().endswith((".tif", ".tiff", ".png")):
             abort(
                 400,
-                description=f"Uploaded file is not a PNG image (filename extension). {png_file.filename}",
+                description=f"Uploaded file is not an image (filename extension). {file8.filename}",
             )
 
-        if png_file.content_type != "image/png":
+        if file8.content_type != "image/tiff" and file8.content_type != "image/png":
             abort(
                 400,
-                description=f"Uploaded file is not a PNG image (Content-Type mismatch). {png_file.content_type}",
+                description=f"Uploaded file is not an image (Content-Type mismatch). {file8.content_type}",
             )
 
-        png_data = png_file.read()
+        data8 = file8.read()
 
-        if len(png_data) > MAX_FILE_SIZE:
+        if len(data8) > MAX_FILE_SIZE:
             abort(413, description="File too large.")
 
-        tiff_file = request.files["image_tiff"]
+        file16 = request.files["image16"]
 
-        if tiff_file.filename == "":
+        if file16.filename == "":
             abort(400, description="No selected file.")
 
-        if not tiff_file.filename.lower().endswith((".tif", ".tiff")):
+        if not file16.filename.lower().endswith((".tif", ".tiff", "png")):
             abort(
                 400,
-                description=f"Uploaded file is not a TIFF image (filename extension). {tiff_file.filename}",
+                description=f"Uploaded file is not an image (filename extension). {file16.filename}",
             )
 
-        if tiff_file.content_type != "image/tiff":
+        if file16.content_type != "image/tiff" and file16.content_type != "image/png":
             abort(
                 400,
-                description=f"Uploaded file is not a TIFF image (Content-Type mismatch). {tiff_file.content_type}",
+                description=f"Uploaded file is not an image (Content-Type mismatch). {file16.content_type}",
             )
 
-        tiff_data = tiff_file.read()
+        data16 = file16.read()
 
-        if len(tiff_data) > MAX_FILE_SIZE:
+        if len(data16) > MAX_FILE_SIZE:
             abort(413, description="File too large.")
 
         json_file = request.files["metadata"]
@@ -137,16 +137,16 @@ def create_app():
             )
 
         try:
-            png_stream = io.BytesIO(png_data)
-            image_array = np.frombuffer(png_stream.read(), np.uint8)
-            png_img = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-            tiff_stream = io.BytesIO(tiff_data)
-            image_array = np.frombuffer(tiff_stream.read(), np.uint16)
-            tiff_img = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
+            stream8 = io.BytesIO(data8)
+            image_array = np.frombuffer(stream8.read(), np.uint8)
+            image8 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
+            stream16 = io.BytesIO(data16)
+            image_array = np.frombuffer(stream16.read(), np.uint16)
+            image16 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
             json_data = json.load(json_file)
 
-            print(png_img.shape)
-            print(tiff_img.shape)
+            print(image8.shape)
+            print(image16.shape)
             print(json_data)
             # cv2.imwrite("cat-png.png", png_img)
             # cv2.imwrite("cat-tiff.tiff", tiff_img.astype(np.uint8))
