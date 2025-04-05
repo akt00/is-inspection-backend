@@ -17,14 +17,9 @@ steps:
     args:
     - 'run'
     - 'deploy'
-    - 'my-image'
+    - 'my-image-2'
     - '--image'
     - 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:latest'
-    - '--region'
-    - 'us-central1'
-    - '--platform'
-    - 'managed'
-    - '--allow-unauthenticated'
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image'
 options:
