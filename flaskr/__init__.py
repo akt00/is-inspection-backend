@@ -31,7 +31,7 @@ def create_app():
         cur.execute("select * from request")
         logging.info(f'{cur.fetchone()}')
         print(f'{cur.fetchone()}')
-        cur.execute("insert into request(client_ip) values ('10.1.1.2.')")
+        cur.execute("insert into request (client_ip) values ('10.1.1.2')")
         cur.close()
         print("db operation success")
         return "Hello, World!"
