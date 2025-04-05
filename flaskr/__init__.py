@@ -25,6 +25,11 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
+        logging.info("DB requet received")
+        cur = conn.cursor()
+        cur.execute("select * from request")
+        logging.info(f'{cur.fetchone()}')
+        cur.close()
         return "Hello, World!"
 
     @requires_auth
