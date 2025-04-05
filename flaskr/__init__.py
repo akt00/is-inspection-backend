@@ -1,6 +1,7 @@
 import io
 import logging
 import json
+import os
 
 import cv2
 from flask import Flask, request, make_response, jsonify, abort
@@ -25,9 +26,8 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
-        with open("/mnt/output.txt", "w") as f:
-            f.write("DB connection success!")
-
+        print(os.listdir("/mnt"))
+        
         logging.info("DB request received")
         print("DB request received")
         cur = None  # Initialize cur to None
