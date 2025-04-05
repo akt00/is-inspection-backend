@@ -27,11 +27,11 @@ def create_app():
     @app.route("/", methods=["GET"])
     def index():
         text = ""
-        with open("/mnt/my-volume/default.tfstate") as f:
+        with open("/gcs/my-volume/default.tfstate") as f:
             while line := f.readline():
                 text += line
 
-        with open("/mnt/my-volume/sample-logfile.txt", "a") as f:
+        with open("/gcs/my-volume/sample-logfile.txt", "a") as f:
             f.write("DB connection success!\n")
 
         logging.info("DB request received")

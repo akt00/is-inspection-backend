@@ -8,4 +8,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* # Clean up to reduce image size
 # ... (rest of your Dockerfile)
 RUN pip install -r requirements
+RUN mkdir /gcs
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "flaskr:create_app()"]
