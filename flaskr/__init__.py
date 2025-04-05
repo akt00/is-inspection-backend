@@ -4,6 +4,7 @@ import json
 import cv2
 from flask import Flask, request, make_response, jsonify, abort
 import numpy as np
+import psycopg2 as pg
 
 if __name__ == "__main__":
     from auth import requires_auth
@@ -13,6 +14,10 @@ else:
 
 def create_app():
     app = Flask(__name__)
+    conn = pg.connect(
+        "dbname=test database=test user=postgres password=postgres host=10.93.90.3 port=5432"
+    )
+    assert conn is not None
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
 
