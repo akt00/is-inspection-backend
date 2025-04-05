@@ -1,4 +1,5 @@
 import io
+import logging
 import json
 
 import cv2
@@ -17,6 +18,7 @@ def create_app():
     conn = pg.connect(
         "dbname=test user=postgres password=postgres host=10.93.80.3 port=5432"
     )
+    logging.info("DB connection success")
     assert conn is not None
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024

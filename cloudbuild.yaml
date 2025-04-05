@@ -17,7 +17,7 @@ steps:
     args:
     - 'run'
     - 'deploy'
-    - 'mock-api'
+    - 'my-image'
     - '--image'
     - 'us-central1-docker.pkg.dev/$PROJECT_ID/mock-api/my-image:latest'
     - '--region'
