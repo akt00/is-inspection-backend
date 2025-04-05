@@ -25,6 +25,9 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
+        with open("/mnt/output.txt", "w") as f:
+            f.write("DB connection success!")
+
         logging.info("DB request received")
         print("DB request received")
         cur = None  # Initialize cur to None
