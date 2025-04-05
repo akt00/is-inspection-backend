@@ -25,16 +25,45 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
-        logging.info("DB requet received")
-        print("DB requet received")
-        cur = conn.cursor()
-        cur.execute("select * from request")
-        logging.info(f'{cur.fetchone()}')
-        print(f'{cur.fetchone()}')
-        cur.execute("insert into request (client_ip) values ('10.1.1.2')")
-        cur.close()
-        print("db operation success")
-        return "Hello, World!"
+        logging.info("DB request received")
+        print("DB request received")
+        cur = None  # Initialize cur to None
+        try:
+            cur = conn.cursor()
+            cur.execute("select * from request")
+            # Be careful calling fetchone() twice like this.
+            # The first call gets a row, the second will likely get None
+            # unless you expected multiple rows.
+            logging.info(f"Fetched row 1: {cur.fetchone()}")
+            # print(f'Fetched row 2: {cur.fetchone()}') # This will likely print None
+
+            logging.info("Executing insert...")
+            cur.execute("insert into request (client_ip) values ('10.1.1.2')")
+
+            # --- THIS IS THE MISSING STEP ---
+            conn.commit()
+            # --------------------------------
+
+            logging.info("DB operation success (committed)")
+            print("db operation success (committed)")
+            return (
+                "Request logged successfully!"  # Flask routes need to return something
+            )
+
+        except Exception as e:
+            logging.error(f"Database error: {e}")
+            print(f"Database error: {e}")
+            if conn:
+                conn.rollback()  # Roll back changes if something went wrong
+            return "Internal Server Error", 500  # Return an error response
+
+        finally:
+            if cur:
+                cur.close()
+                logging.info("Cursor closed")
+                print("Cursor closed")
+        # Note: Closing the main connection 'conn' here would prevent subsequent requests
+        # from using it. Managing connection scope is important (see below).
 
     @requires_auth
     @app.route("/api/v1/inference", methods=["POST"])
