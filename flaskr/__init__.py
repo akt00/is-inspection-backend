@@ -14,9 +14,6 @@ else:
 
 def create_app():
     app = Flask(__name__)
-    conn = pg.connect(
-        "dbname=dev user=postgres password=postgres host=10.93.80.3 port=5432"
-    )
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
 
