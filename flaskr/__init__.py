@@ -26,7 +26,10 @@ def create_app():
 
     @app.route("/", methods=["GET"])
     def index():
-        print(os.listdir("/mnt"))
+        text = ""
+        with open("/mnt/default.tfstate") as f:
+            while line := f.readline():
+                text += line
         
         logging.info("DB request received")
         print("DB request received")
@@ -50,6 +53,7 @@ def create_app():
             logging.info("DB operation success (committed)")
             print("db operation success (committed)")
             return (
+                text +
                 "Request logged successfully!"  # Flask routes need to return something
             )
 
