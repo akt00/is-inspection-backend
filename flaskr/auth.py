@@ -1,9 +1,9 @@
 from functools import wraps
 
-from flask import request, make_response, jsonify
+from flask import request, make_response, jsonify, Response
 
 
-def authenticate():
+def authenticate() -> Response:
     response = make_response(jsonify({"message": "Authentication required"}), 401)
     response.headers["WWW-Authenticate"] = 'Basic realm="Login Required"'
     return response

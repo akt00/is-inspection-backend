@@ -27,7 +27,7 @@ def create_app():
     @app.route("/", methods=["GET"])
     def index():
         text = ""
-        with open("/mnt/default.tfstate") as f:
+        with open("/mnt/my-volume/default.tfstate") as f:
             while line := f.readline():
                 text += line
         
