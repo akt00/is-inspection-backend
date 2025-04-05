@@ -7,5 +7,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/* # Clean up to reduce image size
 # ... (rest of your Dockerfile)
-RUN pip install requirements
+RUN pip install -r requirements
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "flaskr:create_app()"]
