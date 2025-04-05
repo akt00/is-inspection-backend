@@ -26,10 +26,14 @@ def create_app():
     @app.route("/", methods=["GET"])
     def index():
         logging.info("DB requet received")
+        print("DB requet received")
         cur = conn.cursor()
         cur.execute("select * from request")
         logging.info(f'{cur.fetchone()}')
+        print(f'{cur.fetchone()}')
+        cur.execute("insert into request(client_ip) values ('10.1.1.2.')")
         cur.close()
+        print("db operation success")
         return "Hello, World!"
 
     @requires_auth
