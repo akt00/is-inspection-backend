@@ -15,7 +15,7 @@ else:
 def create_app():
     app = Flask(__name__)
     conn = pg.connect(
-        "dbname=test user=postgres password=postgres host=10.93.90.3 port=5432"
+        "dbname=test user=postgres password=postgres host=10.93.90.3 port=3306"
     )
     assert conn is not None
     # 1GB
