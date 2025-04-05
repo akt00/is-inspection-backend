@@ -30,7 +30,10 @@ def create_app():
         with open("/mnt/my-volume/default.tfstate") as f:
             while line := f.readline():
                 text += line
-        
+
+        with open("/mnt/my-volume/sample-logfile.txt", "a") as f:
+            f.write("DB connection success!\n")
+
         logging.info("DB request received")
         print("DB request received")
         cur = None  # Initialize cur to None
@@ -53,8 +56,8 @@ def create_app():
             logging.info("DB operation success (committed)")
             print("db operation success (committed)")
             return (
-                text +
-                "Request logged successfully!"  # Flask routes need to return something
+                text
+                + "Request logged successfully!"  # Flask routes need to return something
             )
 
         except Exception as e:
