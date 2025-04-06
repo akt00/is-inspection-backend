@@ -1,14 +1,13 @@
 import io
-import logging
 import json
+import logging
 
 import cv2
 from flask import Flask, request, make_response, jsonify, abort
-import numpy as np
-import psycopg2 as pg
 import google.cloud.logging
 from google.cloud.logging_v2.handlers import CloudLoggingHandler
-
+import numpy as np
+import psycopg2 as pg
 
 if __name__ == "__main__":
     from auth import requires_auth
@@ -18,72 +17,56 @@ else:
 
 def create_app():
     app = Flask(__name__)
-
-    conn = pg.connect(
-        "dbname=test user=postgres password=postgres host=10.93.80.3 port=5432"
-    )
-    assert conn is not None
-
-    logging_client = google.cloud.logging.Client()
-    handler = CloudLoggingHandler(logging_client)
-    logger = logging.getLogger('cloudLogger')
-    logger.setLevel(logging.INFO)
-    logger.addHandler(handler)
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
 
+    logging_client = google.cloud.logging.Client()
+    handler = CloudLoggingHandler(logging_client)
+    logger = logging.getLogger("cloudLogger")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+    conn = pg.connect(
+        "dbname=test user=postgres password=postgres host=10.93.80.3 port=5432 sslmode=require"
+    )
+    assert conn is not None
     logger.info("DB connection success")
 
     @app.route("/", methods=["GET"])
     def index():
         text = ""
+
         with open("/gcs/my-volume/default.tfstate") as f:
             while line := f.readline():
                 text += line
 
         with open("/gcs/my-volume/sample-logfile.txt", "a") as f:
-            f.write("DB connection success!\n")
+            f.write("Cloud storage write success!\n")
+            logger.info("Cloud storage write success!")
 
-        logging.info("DB request received")
-        print("DB request received")
-        cur = None  # Initialize cur to None
+        cur = None
+
         try:
             cur = conn.cursor()
             cur.execute("select * from request")
-            # Be careful calling fetchone() twice like this.
-            # The first call gets a row, the second will likely get None
-            # unless you expected multiple rows.
-            logging.info(f"Fetched row 1: {cur.fetchone()}")
-            # print(f'Fetched row 2: {cur.fetchone()}') # This will likely print None
-
-            logging.info("Executing insert...")
+            logger.info(f"Fetched row 1: {cur.fetchone()}")
+            logger.info("Executing insert...")
             cur.execute("insert into request (client_ip) values ('10.1.1.2')")
-
-            # --- THIS IS THE MISSING STEP ---
+            # commit
             conn.commit()
-            # --------------------------------
-
-            logging.info("DB operation success (committed)")
-            print("db operation success (committed)")
-            return (
-                text
-                + "Request logged successfully!"  # Flask routes need to return something
-            )
+            logger.info("DB operation success (committed)")
+            return text + "Request logged successfully!"
 
         except Exception as e:
-            logging.error(f"Database error: {e}")
-            print(f"Database error: {e}")
+            logger.error(f"Database error: {e}")
             if conn:
-                conn.rollback()  # Roll back changes if something went wrong
-            return "Internal Server Error", 500  # Return an error response
+                conn.rollback()
+            return "Internal Server Error", 500
 
         finally:
             if cur:
                 cur.close()
-                logging.info("Cursor closed")
-                print("Cursor closed")
-        # Note: Closing the main connection 'conn' here would prevent subsequent requests
-        # from using it. Managing connection scope is important (see below).
+                logger.info("Cursor closed")
 
     @requires_auth
     @app.route("/api/v1/inference", methods=["POST"])
