@@ -1,12 +1,14 @@
 import io
 import logging
 import json
-import os
 
 import cv2
 from flask import Flask, request, make_response, jsonify, abort
 import numpy as np
 import psycopg2 as pg
+import google.cloud.logging
+from google.cloud.logging_v2.handlers import CloudLoggingHandler
+
 
 if __name__ == "__main__":
     from auth import requires_auth
@@ -16,13 +18,21 @@ else:
 
 def create_app():
     app = Flask(__name__)
+
     conn = pg.connect(
         "dbname=test user=postgres password=postgres host=10.93.80.3 port=5432"
     )
-    logging.info("DB connection success")
     assert conn is not None
+
+    logging_client = google.cloud.logging.Client()
+    handler = CloudLoggingHandler(logging_client)
+    logger = logging.getLogger('cloudLogger')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
+
+    logger.info("DB connection success")
 
     @app.route("/", methods=["GET"])
     def index():
