@@ -263,7 +263,9 @@ def create_app():
             cur = conn.cursor()
             cur.execute(insert_request_and_get_id, (client_ip,))
             request_id = cur.fetchone()[0]
-            cur.execute(insert_image, (filename, 16, h16, w16, json.dumps(json_data), request_id, None))
+            storage_path16 = "gs://" + GCS_PATH_16BIT + filename
+            cur.execute(insert_image, (storage_path16, 16, h16, w16, json.dumps(json_data), request_id, None))
+            # storage_path8 = "gs://" + GCS_PATH_8BIT + filename
             # cur.execute(insert_image, (str(unique_id) + ".png", 8, h8, w8, None, request_id, None))
             # commit
             conn.commit()
