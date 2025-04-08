@@ -262,6 +262,7 @@ def create_app():
             cur.execute(insert_image, (path_8bit, 8, h8, w8, json_data, request_id, None))
             # commit
             conn.commit()
+            logger.info("Upload success (committed)")
 
         except (IOError, OSError) as e:
             logger.error(f"Error opening or processing TIFF image: {e}")
