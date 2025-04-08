@@ -1,6 +1,7 @@
 import io
 import json
 import logging
+import os
 
 import cv2
 from flask import Flask, request, make_response, jsonify, abort
@@ -11,11 +12,14 @@ import psycopg2 as pg
 
 if __name__ == "__main__":
     from auth import requires_auth
+    from queries import insert_to_request
 else:
     from .auth import requires_auth
+    from .queries import insert_to_request
 
 
 def create_app():
+    DB_PATH = os.getenv("DB_PATH") if os.getenv("DB_PATH") is not None else "10.93.80.10"
     app = Flask(__name__)
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
@@ -44,6 +48,7 @@ def create_app():
             f.write("Cloud storage write success!\n")
             logger.info("Cloud storage write success!")
 
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         cur = None
 
         try:
@@ -51,10 +56,12 @@ def create_app():
             cur.execute("select * from request")
             logger.info(f"Fetched row 1: {cur.fetchone()}")
             logger.info("Executing insert...")
-            cur.execute("insert into request (client_ip) values ('10.1.1.2')")
+            cur.execute(insert_to_request, (client_ip,))
+            returned_id = cur.fetchone()[0]
             # commit
             conn.commit()
             logger.info("DB operation success (committed)")
+            logger.info(f"Returned ID: {returned_id} Client IP: {client_ip}")
             return text + "Request logged successfully!"
 
         except Exception as e:
