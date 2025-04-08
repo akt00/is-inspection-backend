@@ -244,9 +244,9 @@ def create_app():
             validate(instance=json_data, schema=annotation_schema)
 
             unique_id = uuid.uuid1()
-            path_16bit = Path("/gcs") / GCS_PATH_16BIT / str(unique_id) + ".png"
+            path_16bit = Path("/gcs") / GCS_PATH_16BIT / f"{unique_id}.png"
             h16, w16, _ = image16.shape
-            path_8bit = Path("/gcs") / GCS_PATH_8BIT / str(unique_id) + ".png"
+            path_8bit = Path("/gcs") / GCS_PATH_8BIT / f"{unique_id}.png"
             h8, w8, _ = image8.shape
 
             cv2.imwrite(path_16bit, image16.astype(np.uint16))
