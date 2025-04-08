@@ -262,8 +262,8 @@ def create_app():
             cur = conn.cursor()
             cur.execute(insert_request_and_get_id, (client_ip,))
             request_id = cur.fetchone()[0]
-            cur.execute(insert_image, (str(unique_id) + ".png", 16, h16, w16, None, request_id, None))
-            cur.execute(insert_image, (str(unique_id) + ".png", 8, h8, w8, None, request_id, None))
+            cur.execute(insert_image, ("test.png", 16, h16, w16, None, request_id, None))
+            # cur.execute(insert_image, (str(unique_id) + ".png", 8, h8, w8, None, request_id, None))
             # commit
             conn.commit()
             logger.info("Upload success (committed)")
@@ -275,8 +275,10 @@ def create_app():
             logger.error(f"The JSON data does not conform to the schema: {e}")
             abort(400, f"The JSON data does not conform to the schema: {e}")
         except Exception as e:
-            logger.error(f"An unexpected error occurred: {e}")
-            abort(500, description=f"An unexpected error occurred: {e}")
+            logger.error(f"Database error: {e}")
+            if conn:
+                conn.rollback()
+            return "Internal Server Error", 500
 
         return make_response(jsonify({"message": "success!"}), 200)
 
