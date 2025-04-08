@@ -2,28 +2,53 @@ import io
 import json
 import logging
 import os
+from pathlib import Path
+import uuid
 
 import cv2
 from flask import Flask, request, make_response, jsonify, abort
 import google.cloud.logging
 from google.cloud.logging_v2.handlers import CloudLoggingHandler
+from jsonschema import validate, ValidationError
 import numpy as np
 import psycopg2 as pg
 
 if __name__ == "__main__":
     from auth import requires_auth
-    from queries import (select_all_request, insert_request_and_get_id)
+    from queries import select_all_request, insert_request_and_get_id, insert_image
+    from schemas import annotation_schema
 else:
     from .auth import requires_auth
-    from .queries import (select_all_request, insert_request_and_get_id)
+    from .queries import select_all_request, insert_request_and_get_id, insert_image
+    from .schemas import annotation_schema
 
 
 def create_app():
-    DB_HOST = os.getenv("DB_HOST") if os.getenv("DB_HOST") is not None else "10.93.80.10"
+    DB_HOST = (
+        os.getenv("DB_HOST") if os.getenv("DB_HOST") is not None else "10.93.80.10"
+    )
     DB_PORT = os.getenv("DB_PORT") if os.getenv("DB_PORT") is not None else "5432"
     DB_NAME = os.getenv("DB_NAME") if os.getenv("DB_NAME") is not None else "test"
     DB_USER = os.getenv("DB_USER") if os.getenv("DB_USER") is not None else "postgres"
-    DB_PASSWD = os.getenv("DB_PASSWD") if os.getenv("DB_PASSWD") is not None else "postgres"
+    DB_PASSWD = (
+        os.getenv("DB_PASSWD") if os.getenv("DB_PASSWD") is not None else "postgres"
+    )
+
+    GCS_PATH_EMBEDDINGS = (
+        os.getenv("GCS_PATH_8BIT")
+        if os.getenv("GCS_PATH_8BIT") is not None
+        else "cis-seizo-8bit"
+    )
+    GCS_PATH_16BIT = (
+        os.getenv("GCS_PATH_16BIT")
+        if os.getenv("GCS_PATH_16BIT") is not None
+        else "cis-seizo-16bit"
+    )
+    GCS_PATH_8BIT = (
+        os.getenv("GCS_PATH_8BIT")
+        if os.getenv("GCS_PATH_8BIT") is not None
+        else "cis-seizo-8bit"
+    )
 
     app = Flask(__name__)
     # 1GB
@@ -44,16 +69,15 @@ def create_app():
     @app.route("/", methods=["GET"])
     def index():
         text = ""
-
-        with open("/gcs/my-volume/default.tfstate") as f:
+        with open(os.path.join("gcs/default", "default.tfstate"), "r") as f:
             while line := f.readline():
                 text += line
 
-        with open("/gcs/my-volume/sample-logfile.txt", "a") as f:
+        with open(os.path.join("gcs/default", "logfile"), "a") as f:
             f.write("Cloud storage write success!\n")
             logger.info("Cloud storage write success!")
 
-        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         cur = None
 
         try:
@@ -62,8 +86,8 @@ def create_app():
             logger.info(f"Fetched row 1: {cur.fetchone()}")
             logger.info("Executing insert...")
             cur.execute(insert_request_and_get_id, (client_ip,))
-            returned_id = cur.fetchone()[0]
-            logger.info(f"Returned ID: {returned_id} Client IP: {client_ip}")
+            request_id = cur.fetchone()[0]
+            logger.info(f"Returned ID: {request_id} Client IP: {client_ip}")
             # commit
             conn.commit()
             logger.info("DB operation success (committed)")
@@ -211,13 +235,39 @@ def create_app():
             stream16 = io.BytesIO(data16)
             image_array = np.frombuffer(stream16.read(), np.uint16)
             image16 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-            json_data = json.load(json_file)
-            logger.info(f"image8 shape: {image8.shape} image16 shape: {image16.shape} data: {json_data}")
             # cv2.imwrite("cat-png.png", png_img)
             # cv2.imwrite("cat-tiff.tiff", tiff_img.astype(np.uint8))
+            json_data = json.load(json_file)
+            logger.info(
+                f"image8 shape: {image8.shape} image16 shape: {image16.shape} data: {json_data}"
+            )
+            validate(instance=json_data, schema=annotation_schema)
+
+            unique_id = uuid.uuid1()
+            path_16bit = Path(GCS_PATH_16BIT) / str(unique_id) + ".png"
+            h16, w16, _ = image16.shape
+            path_8bit = Path(GCS_PATH_8BIT) / str(unique_id) + ".png"
+            h8, w8, _ = image8.shape
+
+            cv2.imwrite(path_16bit, image16.astype(np.uint16))
+            cv2.imwrite(path_8bit, image8.astype(np.uint8))
+            # transaction
+            client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+            cur = None
+
+            cur = conn.cursor()
+            cur.execute(insert_request_and_get_id, (client_ip,))
+            request_id = cur.fetchone()[0]
+            cur.execute(insert_image, (path_16bit, 16, h16, w16, json_data, request_id, None))
+            cur.execute(insert_image, (path_8bit, 8, h8, w8, json_data, request_id, None))
+            # commit
+            conn.commit()
+
         except (IOError, OSError) as e:
             logger.error(f"Error opening or processing TIFF image: {e}")
             abort(400, description=f"Error opening or processing TIFF image: {e}")
+        except ValidationError as e:
+            print(f"The JSON data does not conform to the schema: {e}")
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}")
             abort(500, description=f"An unexpected error occurred: {e}")
