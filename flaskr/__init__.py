@@ -27,7 +27,7 @@ def create_app():
     logger.addHandler(handler)
 
     conn = pg.connect(
-        "dbname=test user=postgres password=postgres host=10.98.80.10 port=5432 sslmode=require"
+        "dbname=test user=postgres password=postgres host=10.93.80.10 port=5432 sslmode=require"
     )
     assert conn is not None
     logger.info("DB connection success")
