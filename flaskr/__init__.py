@@ -37,7 +37,7 @@ def create_app():
     GCS_PATH_EMBEDDINGS = (
         os.getenv("GCS_PATH_8BIT")
         if os.getenv("GCS_PATH_8BIT") is not None
-        else "cis-seizo-8bit"
+        else "cis-seizo-embeddings"
     )
     GCS_PATH_16BIT = (
         os.getenv("GCS_PATH_16BIT")
@@ -69,11 +69,11 @@ def create_app():
     @app.route("/", methods=["GET"])
     def index():
         text = ""
-        with open(os.path.join("gcs/default", "default.tfstate"), "r") as f:
+        with open(os.path.join("/gcs/default", "default.tfstate"), "r") as f:
             while line := f.readline():
                 text += line
 
-        with open(os.path.join("gcs/default", "logfile"), "a") as f:
+        with open(os.path.join("/gcs/default", "logfile"), "a") as f:
             f.write("Cloud storage write success!\n")
             logger.info("Cloud storage write success!")
 
@@ -244,9 +244,9 @@ def create_app():
             validate(instance=json_data, schema=annotation_schema)
 
             unique_id = uuid.uuid1()
-            path_16bit = Path(GCS_PATH_16BIT) / str(unique_id) + ".png"
+            path_16bit = Path("/gcs") / GCS_PATH_16BIT / str(unique_id) + ".png"
             h16, w16, _ = image16.shape
-            path_8bit = Path(GCS_PATH_8BIT) / str(unique_id) + ".png"
+            path_8bit = Path("/gcs") / GCS_PATH_8BIT / str(unique_id) + ".png"
             h8, w8, _ = image8.shape
 
             cv2.imwrite(path_16bit, image16.astype(np.uint16))
