@@ -268,7 +268,8 @@ def create_app():
             logger.error(f"Error opening or processing TIFF image: {e}")
             abort(400, description=f"Error opening or processing TIFF image: {e}")
         except ValidationError as e:
-            print(f"The JSON data does not conform to the schema: {e}")
+            logger.error(f"The JSON data does not conform to the schema: {e}")
+            abort(400, f"The JSON data does not conform to the schema: {e}")
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}")
             abort(500, description=f"An unexpected error occurred: {e}")
@@ -279,7 +280,7 @@ def create_app():
 
 
 """
-curl -u admin:admin -X POST https://mock-api-525898554966.us-central1.run.app:8080/api/v1/upload \
+curl -u admin:admin -X POST https://mock-api-525898554966.us-central1.run.app/api/v1/upload \
   -F "image8=@image8.png;type=image/png" \
   -F "image16=@image16.png;type=image/png" \
   -F "metadata=@image.json;type=application/json"
