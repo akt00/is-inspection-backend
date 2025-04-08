@@ -34,11 +34,13 @@ def create_app():
         os.getenv("DB_PASSWD") if os.getenv("DB_PASSWD") is not None else "postgres"
     )
 
+    """
     GCS_PATH_EMBEDDINGS = (
         os.getenv("GCS_PATH_8BIT")
         if os.getenv("GCS_PATH_8BIT") is not None
         else "cis-seizo-embeddings"
     )
+    """
     GCS_PATH_16BIT = (
         os.getenv("GCS_PATH_16BIT")
         if os.getenv("GCS_PATH_16BIT") is not None
