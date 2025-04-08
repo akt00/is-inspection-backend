@@ -61,9 +61,9 @@ def create_app():
     logger = logging.getLogger("cloudLogger")
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
-    # returns connector
 
-    def get_connection():
+    # returns db connector
+    def get_db_connector():
         try:
             connector = pg2.connect(
                 dbname=DB_NAME,
@@ -95,7 +95,7 @@ def create_app():
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
         try:
-            with get_connection() as conn:
+            with get_db_connector() as conn:
                 with conn.cursor() as cur:
                     cur = conn.cursor()
                     cur.execute(select_all_request)
@@ -261,24 +261,23 @@ def create_app():
             cv2.imwrite(path_8bit, image8.astype(np.uint8))
             # transaction
             client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-            cur = None
-            conn = None
-            cur = conn.cursor()
-            cur.execute(insert_request_and_get_id, (client_ip,))
-            request_id = cur.fetchone()[0]
-            storage_path16 = "gs://" + GCS_PATH_16BIT + "/" + filename
-            cur.execute(
-                insert_image,
-                (storage_path16, 16, h16, w16, json.dumps(json_data), request_id, None),
-            )
-            storage_path8 = "gs://" + GCS_PATH_8BIT + "/" + filename
-            cur.execute(
-                insert_image,
-                (storage_path8, 8, h8, w8, json.dumps(json_data), request_id, None),
-            )
-            # commit
-            conn.commit()
-            logger.info("Upload success (committed)")
+
+            with get_db_connector() as conn:
+                with conn.cursor() as cur:
+                    cur = conn.cursor()
+                    cur.execute(insert_request_and_get_id, (client_ip,))
+                    request_id = cur.fetchone()[0]
+                    storage_path16 = "gs://" + GCS_PATH_16BIT + "/" + filename
+                    cur.execute(
+                        insert_image,
+                        (storage_path16, 16, h16, w16, json.dumps(json_data), request_id, None),
+                    )
+                    storage_path8 = "gs://" + GCS_PATH_8BIT + "/" + filename
+                    cur.execute(
+                        insert_image,
+                        (storage_path8, 8, h8, w8, json.dumps(json_data), request_id, None),
+                    )
+                logger.info("Upload success (committed)")
 
         except (IOError, OSError) as e:
             logger.error(f"Error opening or processing TIFF image: {e}")
@@ -288,8 +287,6 @@ def create_app():
             abort(400, f"The JSON data does not conform to the schema: {e}")
         except Exception as e:
             logger.error(f"Database error: {e}")
-            if conn:
-                conn.rollback()
             return "Internal Server Error", 500
 
         return make_response(jsonify({"message": "success!"}), 200)
