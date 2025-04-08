@@ -69,13 +69,15 @@ def create_app():
     @app.route("/", methods=["GET"])
     def index():
         text = ""
-        with open(os.path.join("/gcs/default", "default.tfstate"), "r") as f:
-            while line := f.readline():
-                text += line
+        path = Path("/gcs") / "default"
 
-        with open(os.path.join("/gcs/default", "logfile"), "a") as f:
+        with open(os.path.join(path / "logfile"), "a") as f:
             f.write("Cloud storage write success!\n")
             logger.info("Cloud storage write success!")
+
+        with open(path / "logfile", "r") as f:
+            while line := f.readline():
+                text += line
 
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         cur = None
