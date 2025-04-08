@@ -12,10 +12,10 @@ import psycopg2 as pg
 
 if __name__ == "__main__":
     from auth import requires_auth
-    from queries import insert_to_request
+    from queries import insert_request_and_get_id
 else:
     from .auth import requires_auth
-    from .queries import insert_to_request
+    from .queries import insert_request_and_get_id
 
 
 def create_app():
@@ -56,7 +56,7 @@ def create_app():
             cur.execute("select * from request")
             logger.info(f"Fetched row 1: {cur.fetchone()}")
             logger.info("Executing insert...")
-            cur.execute(insert_to_request, (client_ip,))
+            cur.execute(insert_request_and_get_id, (client_ip,))
             returned_id = cur.fetchone()[0]
             # commit
             conn.commit()
