@@ -51,22 +51,33 @@ def create_app():
         if os.getenv("GCS_PATH_8BIT") is not None
         else "cis-seizo-8bit"
     )
-
+    # app
     app = Flask(__name__)
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
-
     logging_client = google.cloud.logging.Client()
     handler = CloudLoggingHandler(logging_client)
     logger = logging.getLogger("cloudLogger")
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
+    # connection pooling
+    db_pool = None  # Initialize outside try
 
-    conn = pg.connect(
-        f"dbname={DB_NAME} user={DB_USER} password={DB_PASSWD} host={DB_HOST} port={DB_PORT} sslmode=require"
-    )
-    assert conn is not None
-    logger.info("DB connection success")
+    try:
+        db_pool = pg.pool.SimpleConnectionPool(
+            minconn=1,
+            maxconn=10,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=DB_PASSWD,
+            host=DB_HOST,
+            port=DB_PORT,
+            sslmode="require",
+        )
+        app.config["DB_POOL"] = db_pool
+        logger.info("DB connection pool created")
+    except Exception as e:
+        logger.critical(f"Failed to create DB connection pool: {e}")
 
     @app.route("/", methods=["GET"])
     def index():
@@ -82,9 +93,13 @@ def create_app():
                 text += line
 
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+        conn = None
         cur = None
+        db_pool = app.config['DB_POOL']
 
         try:
+            conn = db_pool.getconn()
             cur = conn.cursor()
             cur.execute(select_all_request)
             logger.info(f"Fetched row 1: {cur.fetchone()}")
@@ -106,7 +121,8 @@ def create_app():
         finally:
             if cur:
                 cur.close()
-                logger.info("Cursor closed")
+            if conn:
+                db_pool.putconn(conn)  # Return connection to pool
 
     @requires_auth
     @app.route("/api/v1/inference", methods=["POST"])
@@ -153,8 +169,6 @@ def create_app():
             abort(400, description=f"Error opening or processing TIFF image: {e}")
         except Exception as e:
             abort(500, description=f"An unexpected error occurred: {e}")
-        finally:
-            pass
 
         return make_response(jsonify({"predictions": [1, 2, 3]}), 200)
 
@@ -259,7 +273,7 @@ def create_app():
             # transaction
             client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
             cur = None
-
+            conn = None
             cur = conn.cursor()
             cur.execute(insert_request_and_get_id, (client_ip,))
             request_id = cur.fetchone()[0]
