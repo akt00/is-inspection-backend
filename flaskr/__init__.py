@@ -248,9 +248,10 @@ def create_app():
             validate(instance=json_data, schema=annotation_schema)
 
             unique_id = uuid.uuid1()
-            path_16bit = Path("/gcs") / GCS_PATH_16BIT / f"{unique_id}.png"
+            filename = str(unique_id) + ".png"
+            path_16bit = Path("/gcs") / GCS_PATH_16BIT / filename
             h16, w16, _ = image16.shape
-            path_8bit = Path("/gcs") / GCS_PATH_8BIT / f"{unique_id}.png"
+            path_8bit = Path("/gcs") / GCS_PATH_8BIT / filename
             h8, w8, _ = image8.shape
 
             cv2.imwrite(path_16bit, image16.astype(np.uint16))
@@ -262,7 +263,7 @@ def create_app():
             cur = conn.cursor()
             cur.execute(insert_request_and_get_id, (client_ip,))
             request_id = cur.fetchone()[0]
-            cur.execute(insert_image, ("test.png", 16, h16, w16, json.dumps(json_data), request_id, None))
+            cur.execute(insert_image, (filename, 16, h16, w16, json.dumps(json_data), request_id, None))
             # cur.execute(insert_image, (str(unique_id) + ".png", 8, h8, w8, None, request_id, None))
             # commit
             conn.commit()
