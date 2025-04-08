@@ -15,12 +15,22 @@ import psycopg2 as pg2
 
 if __name__ == "__main__":
     from auth import requires_auth
-    from queries import select_all_request, insert_request_and_get_id, insert_image
-    from schemas import annotation_schema
+    from queries import (
+        select_all_request,
+        insert_request_and_get_id,
+        insert_inference,
+        insert_image,
+    )
+    from schemas import prediction_schema, annotation_schema
 else:
     from .auth import requires_auth
-    from .queries import select_all_request, insert_request_and_get_id, insert_image
-    from .schemas import annotation_schema
+    from .queries import (
+        select_all_request,
+        insert_request_and_get_id,
+        insert_inference,
+        insert_image,
+    )
+    from .schemas import prediction_schema, annotation_schema
 
 
 def create_app():
@@ -270,12 +280,28 @@ def create_app():
                     storage_path16 = "gs://" + GCS_PATH_16BIT + "/" + filename
                     cur.execute(
                         insert_image,
-                        (storage_path16, 16, h16, w16, json.dumps(json_data), request_id, None),
+                        (
+                            storage_path16,
+                            16,
+                            h16,
+                            w16,
+                            json.dumps(json_data),
+                            request_id,
+                            None,
+                        ),
                     )
                     storage_path8 = "gs://" + GCS_PATH_8BIT + "/" + filename
                     cur.execute(
                         insert_image,
-                        (storage_path8, 8, h8, w8, json.dumps(json_data), request_id, None),
+                        (
+                            storage_path8,
+                            8,
+                            h8,
+                            w8,
+                            json.dumps(json_data),
+                            request_id,
+                            None,
+                        ),
                     )
                 logger.info("Upload success (committed)")
 
@@ -293,6 +319,11 @@ def create_app():
 
     return app
 
+
+"""
+curl -u admin:admin -X POST https://mock-api-525898554966.us-central1.run.app/api/v1/inference \
+  -F "image=@image8.png;type=image/png"
+"""
 
 """
 curl -u admin:admin -X POST https://mock-api-525898554966.us-central1.run.app/api/v1/upload \

@@ -1,3 +1,15 @@
+prediction_schema = {
+    "type": "object",
+    "properties": {
+        "grid_size": {"type": ["number"]},
+        "scores": {"type": ["array"]},
+    },
+    "required": [
+        "grid_size",
+        "scores",
+    ],
+}
+
 annotation_schema = {
     "type": "object",
     "properties": {
