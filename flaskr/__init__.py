@@ -262,8 +262,8 @@ def create_app():
             cur = conn.cursor()
             cur.execute(insert_request_and_get_id, (client_ip,))
             request_id = cur.fetchone()[0]
-            cur.execute(insert_image, (f"{unique_id}.png", 16, h16, w16, json_data, request_id, None))
-            cur.execute(insert_image, (f"{unique_id}.png", 8, h8, w8, json_data, request_id, None))
+            cur.execute(insert_image, (str(unique_id) + ".png", 16, h16, w16, None, request_id, None))
+            cur.execute(insert_image, (str(unique_id) + ".png", 8, h8, w8, None, request_id, None))
             # commit
             conn.commit()
             logger.info("Upload success (committed)")
