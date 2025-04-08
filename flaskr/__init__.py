@@ -11,7 +11,7 @@ import google.cloud.logging
 from google.cloud.logging_v2.handlers import CloudLoggingHandler
 from jsonschema import validate, ValidationError
 import numpy as np
-import psycopg2 as pg
+import psycopg2 as pg2
 
 if __name__ == "__main__":
     from auth import requires_auth
@@ -55,29 +55,29 @@ def create_app():
     app = Flask(__name__)
     # 1GB
     MAX_FILE_SIZE = 1024 * 1024 * 1024
+    # logger
     logging_client = google.cloud.logging.Client()
     handler = CloudLoggingHandler(logging_client)
     logger = logging.getLogger("cloudLogger")
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
-    # connection pooling
-    db_pool = None  # Initialize outside try
+    # returns connector
 
-    try:
-        db_pool = pg.pool.SimpleConnectionPool(
-            minconn=1,
-            maxconn=10,
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWD,
-            host=DB_HOST,
-            port=DB_PORT,
-            sslmode="require",
-        )
-        app.config["DB_POOL"] = db_pool
-        logger.info("DB connection pool created")
-    except Exception as e:
-        logger.critical(f"Failed to create DB connection pool: {e}")
+    def get_connection():
+        try:
+            connector = pg2.connect(
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWD,
+                host=DB_HOST,
+                port=DB_PORT,
+                sslmode="require",
+            )
+
+            return connector
+
+        except Exception as e:
+            logger.error(f"Failed to create DB connection pool: {e}")
 
     @app.route("/", methods=["GET"])
     def index():
@@ -94,35 +94,24 @@ def create_app():
 
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
-        conn = None
-        cur = None
-        db_pool = app.config['DB_POOL']
-
         try:
-            conn = db_pool.getconn()
-            cur = conn.cursor()
-            cur.execute(select_all_request)
-            logger.info(f"Fetched row 1: {cur.fetchone()}")
-            logger.info("Executing insert...")
-            cur.execute(insert_request_and_get_id, (client_ip,))
-            request_id = cur.fetchone()[0]
-            logger.info(f"Returned ID: {request_id} Client IP: {client_ip}")
-            # commit
-            conn.commit()
-            logger.info("DB operation success (committed)")
+            with get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur = conn.cursor()
+                    cur.execute(select_all_request)
+                    logger.info(f"Fetched row 1: {cur.fetchone()}")
+                    logger.info("Executing insert...")
+                    cur.execute(insert_request_and_get_id, (client_ip,))
+                    request_id = cur.fetchone()[0]
+                    logger.info(f"Returned ID: {request_id} Client IP: {client_ip}")
+
+                logger.info("DB operation success (committed)")
+
             return text + "\nRequest logged successfully!"
 
         except Exception as e:
             logger.error(f"Database error: {e}")
-            if conn:
-                conn.rollback()
             return "Internal Server Error", 500
-
-        finally:
-            if cur:
-                cur.close()
-            if conn:
-                db_pool.putconn(conn)  # Return connection to pool
 
     @requires_auth
     @app.route("/api/v1/inference", methods=["POST"])
