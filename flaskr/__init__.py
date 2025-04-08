@@ -278,6 +278,12 @@ def create_app():
     return app
 
 
+"""
+curl -u admin:admin -X POST https://mock-api-525898554966.us-central1.run.app:8080/api/v1/upload \
+  -F "image8=@image8.png;type=image/png" \
+  -F "image16=@image16.png;type=image/png" \
+  -F "metadata=@image.json;type=application/json"
+"""
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)
