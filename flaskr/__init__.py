@@ -50,12 +50,12 @@ def create_app():
         if os.getenv("GCS_PATH_8BIT") is not None
         else "cis-seizo-embeddings"
     )
+    """
     GCS_PATH_16BIT = (
         os.getenv("GCS_PATH_16BIT")
         if os.getenv("GCS_PATH_16BIT") is not None
         else "cis-seizo-16bit"
     )
-    """
     GCS_PATH_8BIT = (
         os.getenv("GCS_PATH_8BIT")
         if os.getenv("GCS_PATH_8BIT") is not None
@@ -176,7 +176,7 @@ def create_app():
     def upload():
         if (
             "image8" not in request.files
-            # or "image16" not in request.files
+            or "image16" not in request.files
             or "metadata" not in request.files
         ):
             abort(
@@ -205,7 +205,6 @@ def create_app():
         if len(data8) > MAX_FILE_SIZE:
             abort(413, description="File too large.")
 
-        """
         file16 = request.files["image16"]
 
         if file16.filename == "":
@@ -227,7 +226,6 @@ def create_app():
 
         if len(data16) > MAX_FILE_SIZE:
             abort(413, description="File too large.")
-        """
 
         json_file = request.files["metadata"]
 
@@ -249,25 +247,25 @@ def create_app():
         try:
             image_array = np.frombuffer(data8, np.uint8)
             image8 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-            """
-            image_array = np.frombuffer(data16, np.uint16)
+
+            image_array = np.frombuffer(data16, np.uint8)
             image16 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-            """
+
             json_data = json.load(json_file)
-            logger.info(f"image shape: {image8.shape} data: {json_data}")
+            logger.info(f"image8 shape: {image8.shape} image16 shape: {image16.shape} data: {json_data}")
             # schema validation
             validate(instance=json_data, schema=annotation_schema)
 
             unique_id = uuid.uuid1()
             filename = str(unique_id) + ".png"
-            """
+
             path_16bit = Path("/gcs") / GCS_PATH_16BIT / filename
             h16, w16, _ = image16.shape
-            """
+
             path_8bit = Path("/gcs") / GCS_PATH_8BIT / filename
             h8, w8, _ = image8.shape
 
-            # cv2.imwrite(path_16bit, image16.astype(np.uint16))
+            cv2.imwrite(path_16bit, image16.astype(np.uint16))
             cv2.imwrite(path_8bit, image8.astype(np.uint8))
             # transaction
             client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
@@ -277,7 +275,7 @@ def create_app():
                     cur = conn.cursor()
                     cur.execute(insert_request_and_get_id, (client_ip,))
                     request_id = cur.fetchone()[0]
-                    """
+
                     storage_path16 = "gs://" + GCS_PATH_16BIT + "/" + filename
                     cur.execute(
                         insert_image,
@@ -291,7 +289,7 @@ def create_app():
                             None,
                         ),
                     )
-                    """
+
                     storage_path8 = "gs://" + GCS_PATH_8BIT + "/" + filename
                     cur.execute(
                         insert_image,
