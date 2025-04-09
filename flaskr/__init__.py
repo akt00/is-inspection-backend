@@ -249,7 +249,7 @@ def create_app():
             image_array = np.frombuffer(data8, np.uint8)
             image8 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
 
-            image_array = np.frombuffer(data16, np.uint8)
+            image_array = np.frombuffer(data16, np.uint16)
             image16 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
 
             json_data = json.load(json_file)
@@ -311,7 +311,7 @@ def create_app():
             logger.error(f"The JSON data does not conform to the schema: {e}")
             abort(400, f"The JSON data does not conform to the schema: {e}")
         except Exception as e:
-            logger.error(f"Database error: {e}")
+            logger.error(f"Error: {e}")
             return "Internal Server Error", 500
 
         return make_response(jsonify({"message": "success!"}), 200)
