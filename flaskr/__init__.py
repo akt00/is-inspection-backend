@@ -246,18 +246,17 @@ def create_app():
             )
 
         try:
-            stream8 = io.BytesIO(data8)
-            image_array = np.frombuffer(stream8.read(), np.uint8)
+            image_array = np.frombuffer(data8, np.uint8)
             image8 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-            stream16 = io.BytesIO(data16)
-            image_array = np.frombuffer(stream16.read(), np.uint16)
+
+            image_array = np.frombuffer(data16, np.uint8)
             image16 = cv2.imdecode(image_array, cv2.IMREAD_UNCHANGED)
-            # cv2.imwrite("cat-png.png", png_img)
-            # cv2.imwrite("cat-tiff.tiff", tiff_img.astype(np.uint8))
+
             json_data = json.load(json_file)
             logger.info(
                 f"image8 shape: {image8.shape} image16 shape: {image16.shape} data: {json_data}"
             )
+            # schema validation
             validate(instance=json_data, schema=annotation_schema)
 
             unique_id = uuid.uuid1()
